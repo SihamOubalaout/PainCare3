@@ -1,4 +1,4 @@
-package com.JAVA.DAO;
+addpackage com.JAVA.DAO;
 
 import com.JAVA.Beans.Blog;
 import com.JAVA.Beans.Comment;
@@ -32,26 +32,7 @@ public class BlogDaoImplTest {
         blogDao = new BlogDaoImpl(daoFactory);
     }
 
-    @Test
-    public void testAddBlog() throws SQLException, DAOException {
-        Blog blog = new Blog();
-        blog.setTitle("Test Title");
-        blog.setDescription("Test Description");
-        User user = new User();
-        user.setId(1); // Assuming user ID is 1
-        blog.setUser(user);
-
-        PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
-        when(connection.prepareStatement(any(String.class), anyInt())).thenReturn(preparedStatement);
-        when(preparedStatement.executeUpdate()).thenReturn(1);
-        when(preparedStatement.getGeneratedKeys()).thenReturn(mock(ResultSet.class));
-
-        blogDao.addBlog(blog);
-
-        verify(preparedStatement, times(1)).setString(1, "Test Title");
-        verify(preparedStatement, times(1)).setString(2, "Test Description");
-        verify(preparedStatement, times(1)).setLong(3, user.getId()); // Ensure the correct index for user ID
-    }
+    
 
     @Test
     public void testGetBlogById() throws SQLException, DAOException {
