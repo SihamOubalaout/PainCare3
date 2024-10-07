@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        // Prepend Maven's bin directory to PATH without overwriting existing PATH
+        // Configure Maven tool and prepend its bin directory to PATH
         MAVEN_HOME = tool 'Maven' // Ensure 'Maven' is correctly configured in Jenkins Global Tool Configuration
         PATH = "${MAVEN_HOME}/bin:${env.PATH}"
     }
