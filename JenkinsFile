@@ -10,7 +10,7 @@ tools {
         stage('Checkout') {
             steps {
                 // Checkout the code from the Git repository
-                git 'https://github.com/SihamOubalaout/PainCare3.git'
+                git 'https://github.com/elmarrhoubchaimae/PainCare3.git'
             }
         }
 
