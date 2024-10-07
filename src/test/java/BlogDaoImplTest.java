@@ -41,13 +41,23 @@ public class BlogDaoImplTest {
         user.setId(1); // Assuming user ID is 1
         blog.setUser(user);
 
+        // Mock the PreparedStatement
         PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
         when(connection.prepareStatement(any(String.class), anyInt())).thenReturn(preparedStatement);
+        
+        // Mock executeUpdate to return 1 (indicating success)
         when(preparedStatement.executeUpdate()).thenReturn(1);
-        when(preparedStatement.getGeneratedKeys()).thenReturn(mock(ResultSet.class));
+        
+        // Mock getGeneratedKeys to return a mock ResultSet
+        ResultSet generatedKeys = Mockito.mock(ResultSet.class);
+        when(preparedStatement.getGeneratedKeys()).thenReturn(generatedKeys);
+        when(generatedKeys.next()).thenReturn(true);
+        when(generatedKeys.getLong(1)).thenReturn(1L); // Mock the generated key
 
+        // Call the method under test
         blogDao.addBlog(blog);
 
+        // Verify that the appropriate methods were called on the preparedStatement
         verify(preparedStatement, times(1)).setString(1, "Test Title");
         verify(preparedStatement, times(1)).setString(2, "Test Description");
         verify(preparedStatement, times(1)).setLong(3, user.getId()); // Ensure the correct index for user ID
@@ -114,8 +124,7 @@ public class BlogDaoImplTest {
 
         blogDao.deleteBlog(1);
 
-        // Verify the actual method that is called
-        verify(preparedStatement, times(1)).setObject(1, 1); // Adjusted to match actual call
+        verify(preparedStatement, times(1)).setInt(1, 1);
     }
 
     @Test
