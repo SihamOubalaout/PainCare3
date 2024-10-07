@@ -75,10 +75,12 @@ public class BlogDaoImplTest {
         verify(mockPreparedStatement).setString(1, "JUnit Testing");
         verify(mockPreparedStatement).setString(2, "Testing DAO layer with JUnit and Mockito.");
         verify(mockPreparedStatement).setBytes(3, new byte[]{1, 2, 3});
+        
         // Verify setTimestamp
         ArgumentCaptor<Timestamp> timestampCaptor = ArgumentCaptor.forClass(Timestamp.class);
         verify(mockPreparedStatement).setTimestamp(eq(4), timestampCaptor.capture());
         assertNotNull(timestampCaptor.getValue());
+        
         verify(mockPreparedStatement).setLong(5, 1L);
         verify(mockPreparedStatement).executeUpdate();
         verify(mockPreparedStatement).getGeneratedKeys();
