@@ -1,4 +1,3 @@
-package com.JAVA.DAO;
 
 import com.JAVA.Beans.Blog;
 import com.JAVA.Beans.Comment;
