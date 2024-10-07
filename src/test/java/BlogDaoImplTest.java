@@ -1,124 +1,170 @@
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
+package com.JAVA.DAO;
+
+import com.JAVA.Beans.Blog;
+import com.JAVA.Beans.Comment;
+import com.JAVA.Beans.User;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import com.JAVA.Beans.Blog;
-import com.JAVA.DAO.DAOFactory;
-import com.JAVA.DAO.BlogDaoImpl;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 public class BlogDaoImplTest {
 
-    private DAOFactory mockDAOFactory;
-    private Connection mockConnection;
-    private PreparedStatement mockPreparedStatement;
-    private ResultSet mockResultSet;
-    private BlogDaoImpl blogDAO;
+    private DAOFactory daoFactory;
+    private BlogDaoImpl blogDao;
+    private Connection connection;
 
-    @Before
+    @BeforeEach
     public void setUp() throws SQLException {
-        // Mock the DAOFactory and database-related objects
-        mockDAOFactory = mock(DAOFactory.class);
-        mockConnection = mock(Connection.class);
-        mockPreparedStatement = mock(PreparedStatement.class);
-        mockResultSet = mock(ResultSet.class);
-
-        // Simulate the behavior of the getConnection method
-        when(mockDAOFactory.getConnection()).thenReturn(mockConnection);
-
-        // Mock the prepared statement to be returned when prepareStatement is called
-        when(mockConnection.prepareStatement(anyString(), anyInt())).thenReturn(mockPreparedStatement);
-
-        // Initialize the BlogDaoImpl with the mocked DAOFactory
-        blogDAO = new BlogDaoImpl(mockDAOFactory);
+        daoFactory = Mockito.mock(DAOFactory.class);
+        connection = Mockito.mock(Connection.class);
+        when(daoFactory.getConnection()).thenReturn(connection);
+        blogDao = new BlogDaoImpl(daoFactory);
     }
 
     @Test
-    public void testAddBlog() throws SQLException {
-        // Define the blog object and set up the mock behavior for adding a blog
+    public void testAddBlog() throws SQLException, DAOException {
         Blog blog = new Blog();
-        blog.setTitle("Test Blog");
-        blog.setContent("This is a test blog content.");
+        blog.setTitle("Test Title");
+        blog.setDescription("Test Description");
+        blog.setUser(new User()); // Add proper user initialization
+        blog.getUser().setId(1); // Assuming user ID is 1
 
-        // Mock executeUpdate to simulate successful insert
-        when(mockPreparedStatement.executeUpdate()).thenReturn(1);  // Simulate successful insert
-        when(mockPreparedStatement.getGeneratedKeys()).thenReturn(mockResultSet);  // Mock ResultSet for generated keys
-        when(mockResultSet.next()).thenReturn(true);  // Simulate that a key is returned
-        when(mockResultSet.getInt(1)).thenReturn(1);  // Return the generated ID
+        PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
+        when(connection.prepareStatement(any(String.class), anyInt())).thenReturn(preparedStatement);
+        when(preparedStatement.executeUpdate()).thenReturn(1);
+        when(preparedStatement.getGeneratedKeys()).thenReturn(mock(ResultSet.class));
 
-        // Execute the DAO method
-        boolean result = blogDAO.addBlog(blog);
+        blogDao.addBlog(blog);
 
-        // Verify that the insert operation was called
-        verify(mockPreparedStatement, times(1)).executeUpdate();
-
-        // Verify the result of adding a blog
-        assertTrue(result);  // Check if the blog was added successfully
+        verify(preparedStatement, times(1)).setString(1, "Test Title");
+        verify(preparedStatement, times(1)).setString(2, "Test Description");
+        verify(preparedStatement, times(1)).setLong(5, 1); // Assuming user ID is set
     }
 
     @Test
-    public void testGetBlogById() throws SQLException {
-        // Mock the result set to simulate a blog retrieval
-        when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getInt("id")).thenReturn(1);
-        when(mockResultSet.getString("title")).thenReturn("Test Blog");
-        when(mockResultSet.getString("content")).thenReturn("This is a test blog content.");
+    public void testGetBlogById() throws SQLException, DAOException {
+        Blog expectedBlog = new Blog();
+        expectedBlog.setBlogId(1);
+        expectedBlog.setTitle("Test Title");
+        expectedBlog.setDescription("Test Description");
 
-        // Mock the PreparedStatement to return the result set
-        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
 
-        // Execute the DAO method
-        Blog blog = blogDAO.getBlogById(1);
+        when(connection.prepareStatement(any(String.class))).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(true);
+        when(resultSet.getInt("blog_id")).thenReturn(expectedBlog.getBlogId());
+        when(resultSet.getString("title")).thenReturn(expectedBlog.getTitle());
+        when(resultSet.getString("description")).thenReturn(expectedBlog.getDescription());
 
-        // Verify that the correct SQL query was executed
-        verify(mockPreparedStatement, times(1)).executeQuery();
+        Blog actualBlog = blogDao.getBlogById(1);
 
-        // Verify the retrieved blog
-        assertNotNull(blog);
-        assertEquals(1, blog.getId());
-        assertEquals("Test Blog", blog.getTitle());
-        assertEquals("This is a test blog content.", blog.getContent());
+        assertEquals(expectedBlog.getBlogId(), actualBlog.getBlogId());
+        assertEquals(expectedBlog.getTitle(), actualBlog.getTitle());
+        assertEquals(expectedBlog.getDescription(), actualBlog.getDescription());
     }
 
     @Test
-    public void testUpdateBlog() throws SQLException {
-        // Define the blog object to be updated
-        Blog blog = new Blog();
-        blog.setId(1);
-        blog.setTitle("Updated Test Blog");
-        blog.setContent("This is updated blog content.");
+    public void testGetBlogsByUserId() throws SQLException, DAOException {
+        List<Blog> expectedBlogs = new ArrayList<>();
+        Blog blog1 = new Blog();
+        blog1.setBlogId(1);
+        blog1.setTitle("Test Title 1");
+        expectedBlogs.add(blog1);
+        
+        Blog blog2 = new Blog();
+        blog2.setBlogId(2);
+        blog2.setTitle("Test Title 2");
+        expectedBlogs.add(blog2);
 
-        // Mock executeUpdate to simulate successful update
-        when(mockPreparedStatement.executeUpdate()).thenReturn(1);  // Simulate successful update
+        PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
 
-        // Execute the DAO method
-        boolean result = blogDAO.updateBlog(blog);
+        when(connection.prepareStatement(any(String.class))).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(true, true, false);
+        when(resultSet.getInt("blog_id")).thenReturn(1, 2);
+        when(resultSet.getString("title")).thenReturn("Test Title 1", "Test Title 2");
 
-        // Verify that the update operation was called
-        verify(mockPreparedStatement, times(1)).executeUpdate();
+        List<Blog> actualBlogs = blogDao.getBlogsByUserId(1);
 
-        // Verify the result of updating the blog
-        assertTrue(result);  // Check if the blog was updated successfully
+        assertEquals(expectedBlogs.size(), actualBlogs.size());
+        assertEquals(expectedBlogs.get(0).getTitle(), actualBlogs.get(0).getTitle());
+        assertEquals(expectedBlogs.get(1).getTitle(), actualBlogs.get(1).getTitle());
     }
 
     @Test
-    public void testDeleteBlog() throws SQLException {
-        // Mock executeUpdate to simulate successful deletion
-        when(mockPreparedStatement.executeUpdate()).thenReturn(1);  // Simulate successful delete
+    public void testDeleteBlog() throws SQLException, DAOException {
+        PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
+        when(connection.prepareStatement(any(String.class))).thenReturn(preparedStatement);
+        when(preparedStatement.executeUpdate()).thenReturn(1);
 
-        // Execute the DAO method
-        boolean result = blogDAO.deleteBlog(1);
+        blogDao.deleteBlog(1);
 
-        // Verify that the delete operation was called
-        verify(mockPreparedStatement, times(1)).executeUpdate();
+        verify(preparedStatement, times(1)).setInt(1, 1);
+    }
 
-        // Verify the result of deleting the blog
-        assertTrue(result);  // Check if the blog was deleted successfully
+    @Test
+    public void testGetAllBlogs() throws SQLException, DAOException {
+        List<Blog> expectedBlogs = new ArrayList<>();
+        Blog blog1 = new Blog();
+        blog1.setBlogId(1);
+        blog1.setTitle("Test Title 1");
+        expectedBlogs.add(blog1);
+
+        Blog blog2 = new Blog();
+        blog2.setBlogId(2);
+        blog2.setTitle("Test Title 2");
+        expectedBlogs.add(blog2);
+
+        PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+        when(connection.prepareStatement(any(String.class))).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(true, true, false);
+        when(resultSet.getInt("blog_id")).thenReturn(1, 2);
+        when(resultSet.getString("title")).thenReturn("Test Title 1", "Test Title 2");
+
+        List<Blog> actualBlogs = blogDao.getAllBlogs();
+
+        assertEquals(expectedBlogs.size(), actualBlogs.size());
+        assertEquals(expectedBlogs.get(0).getTitle(), actualBlogs.get(0).getTitle());
+        assertEquals(expectedBlogs.get(1).getTitle(), actualBlogs.get(1).getTitle());
+    }
+
+    @Test
+    public void testGetCommentsByBlogId() throws SQLException, DAOException {
+        List<Comment> expectedComments = new ArrayList<>();
+        Comment comment = new Comment();
+        comment.setCommentId(1);
+        comment.setContent("Test Comment");
+        expectedComments.add(comment);
+
+        PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+        when(connection.prepareStatement(any(String.class))).thenReturn(preparedStatement);
+        when(preparedStatement.executeQuery()).thenReturn(resultSet);
+        when(resultSet.next()).thenReturn(true, false);
+        when(resultSet.getInt("comment_id")).thenReturn(1);
+        when(resultSet.getString("content")).thenReturn("Test Comment");
+
+        List<Comment> actualComments = blogDao.getCommentsByBlogId(1);
+
+        assertEquals(expectedComments.size(), actualComments.size());
+        assertEquals(expectedComments.get(0).getContent(), actualComments.get(0).getContent());
     }
 }
