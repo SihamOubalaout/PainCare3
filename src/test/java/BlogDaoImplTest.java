@@ -105,7 +105,12 @@ public class BlogDaoImplTest {
         when(mockResultSet.getString("description")).thenReturn("Testing DAO layer with JUnit and Mockito.");
         when(mockResultSet.getBytes("picture")).thenReturn(new byte[]{1, 2, 3});
         when(mockResultSet.getTimestamp("publicationDate")).thenReturn(new Timestamp(System.currentTimeMillis()));
-        // Assuming user is set in the map method
+        // Mock user-related fields if applicable
+        when(mockResultSet.getLong("user_id")).thenReturn(1L);
+        when(mockResultSet.getString("user_name")).thenReturn("Test User");
+        when(mockResultSet.getString("user_password")).thenReturn("password");
+        when(mockResultSet.getBytes("user_picture")).thenReturn(new byte[]{4, 5, 6});
+        when(mockResultSet.getString("user_email")).thenReturn("testuser@example.com");
 
         // Act
         Blog blog = blogDaoImpl.getBlogById(blogId);
@@ -130,6 +135,13 @@ public class BlogDaoImplTest {
         assertArrayEquals(new byte[]{1, 2, 3}, blog.getPicture());
         assertNotNull(blog.getPublicationDate());
         assertNotNull(blog.getUser()); // User is set in the map method
+
+        // Additional assertions for User object
+        assertEquals(1L, blog.getUser().getId());
+        assertEquals("Test User", blog.getUser().getName());
+        assertEquals("password", blog.getUser().getPassword());
+        assertArrayEquals(new byte[]{4, 5, 6}, blog.getUser().getPicture());
+        assertEquals("testuser@example.com", blog.getUser().getEmail());
     }
 
     // Test for getBlogById - Not Found
