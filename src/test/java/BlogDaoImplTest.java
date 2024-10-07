@@ -1,7 +1,5 @@
 package com.JAVA.DAO;
-import com.JAVA.Beans.Blog;
-import com.JAVA.DAO.DAOFactory;
-import com.JAVA.DAO.BlogDAOImpl;
+
 import com.JAVA.Beans.Blog;
 import com.JAVA.Beans.Comment;
 import com.JAVA.Beans.User;
@@ -52,7 +50,7 @@ public class BlogDaoImplTest {
 
         verify(preparedStatement, times(1)).setString(1, "Test Title");
         verify(preparedStatement, times(1)).setString(2, "Test Description");
-        verify(preparedStatement, times(1)).setLong(5, user.getId()); // Assuming user ID is set
+        verify(preparedStatement, times(1)).setLong(3, user.getId()); // Ensure the correct index for user ID
     }
 
     @Test
