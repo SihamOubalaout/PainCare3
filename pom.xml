@@ -33,6 +33,19 @@
     <version>5.0.0</version>  <!-- Adjust version as needed -->
     <scope>provided</scope>
 </dependency>
+             <dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter-api</artifactId>
+    <version>5.8.2</version> <!-- Check for the latest version -->
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter-engine</artifactId>
+    <version>5.8.2</version> <!-- Check for the latest version -->
+    <scope>test</scope>
+</dependency>
+
 
         <dependency>
             <groupId>javax</groupId>
