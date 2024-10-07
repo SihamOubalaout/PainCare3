@@ -1,5 +1,7 @@
 package com.JAVA.DAO;
-
+import com.JAVA.Beans.Blog;
+import com.JAVA.DAO.DAOFactory;
+import com.JAVA.DAO.BlogDAOImpl;
 import com.JAVA.Beans.Blog;
 import com.JAVA.Beans.Comment;
 import com.JAVA.Beans.User;
@@ -37,8 +39,9 @@ public class BlogDaoImplTest {
         Blog blog = new Blog();
         blog.setTitle("Test Title");
         blog.setDescription("Test Description");
-        blog.setUser(new User()); // Add proper user initialization
-        blog.getUser().setId(1); // Assuming user ID is 1
+        User user = new User();
+        user.setId(1); // Assuming user ID is 1
+        blog.setUser(user);
 
         PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
         when(connection.prepareStatement(any(String.class), anyInt())).thenReturn(preparedStatement);
@@ -49,7 +52,7 @@ public class BlogDaoImplTest {
 
         verify(preparedStatement, times(1)).setString(1, "Test Title");
         verify(preparedStatement, times(1)).setString(2, "Test Description");
-        verify(preparedStatement, times(1)).setLong(5, 1); // Assuming user ID is set
+        verify(preparedStatement, times(1)).setLong(5, user.getId()); // Assuming user ID is set
     }
 
     @Test
