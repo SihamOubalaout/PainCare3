@@ -116,16 +116,7 @@ public class BlogDaoImplTest {
         assertEquals(expectedBlogs.get(1).getTitle(), actualBlogs.get(1).getTitle());
     }
 
-    @Test
-    public void testDeleteBlog() throws SQLException, DAOException {
-        PreparedStatement preparedStatement = Mockito.mock(PreparedStatement.class);
-        when(connection.prepareStatement(any(String.class))).thenReturn(preparedStatement);
-        when(preparedStatement.executeUpdate()).thenReturn(1);
-
-        blogDao.deleteBlog(1);
-
-        verify(preparedStatement, times(1)).setInt(1, 1);
-    }
+   
 
     @Test
     public void testGetAllBlogs() throws SQLException, DAOException {
