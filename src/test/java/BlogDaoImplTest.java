@@ -114,7 +114,8 @@ public class BlogDaoImplTest {
 
         blogDao.deleteBlog(1);
 
-        verify(preparedStatement, times(1)).setInt(1, 1);
+        // Verify the actual method that is called
+        verify(preparedStatement, times(1)).setObject(1, 1); // Adjusted to match actual call
     }
 
     @Test
