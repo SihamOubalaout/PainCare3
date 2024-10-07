@@ -1,52 +1,68 @@
 pipeline {
     agent any
-environment {
-        PATH = "C:\\WINDOWS\\SYSTEM32"
+
+    environment {
+        // Prepend Maven's bin directory to PATH without overwriting existing PATH
+        MAVEN_HOME = tool 'Maven' // Ensure 'Maven' is correctly configured in Jenkins Global Tool Configuration
+        PATH = "${MAVEN_HOME}/bin:${env.PATH}"
     }
-tools {
-        maven 'Maven' 
-    }
+
     stages {
         stage('Checkout') {
             steps {
-                // Checkout the code from the Git repository
+                // Checkout the code from GitHub
                 git 'https://github.com/elmarrhoubchaimae/PainCare3.git'
             }
         }
 
         stage('Build') {
             steps {
-                // Run Maven build on Windows
-                bat 'mvn clean package'
+                // Compile the project without running tests
+                bat 'mvn clean compile'
             }
         }
 
         stage('Test') {
             steps {
-                // Run unit tests on Windows
+                // Run the tests
                 bat 'mvn test'
             }
 
             post {
-                // Archive test results
                 always {
+                    // Collect and publish JUnit test results
                     junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
 
+        stage('Package') {
+            steps {
+                // Package the application (e.g., create JAR/WAR)
+                bat 'mvn package'
+            }
+        }
+
         stage('Deploy') {
             steps {
-                // This is optional, but if you want to deploy, define it here
+                // Deploy the application
                 echo 'Deploying the application...'
+                // Add your deployment scripts or commands here
             }
         }
     }
 
     post {
         always {
-            // Clean up after build
+            // Clean up the workspace after the build
             cleanWs()
+        }
+        success {
+            echo 'Build, Test, and Deployment stages completed successfully!'
+        }
+        failure {
+            echo 'Build or Test failed. Please check the logs for details.'
+            // Optionally, add notifications (e.g., email, Slack) here
         }
     }
 }
