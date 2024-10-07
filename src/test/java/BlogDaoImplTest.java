@@ -29,43 +29,44 @@ public class BlogDaoImplTest {
 
     @Before
     public void setUp() throws Exception {
-        // Mock the DAOFactory and database-related objects
+        // Initialize mocks
         mockDAOFactory = mock(DAOFactory.class);
         mockConnection = mock(Connection.class);
         mockPreparedStatement = mock(PreparedStatement.class);
         mockResultSet = mock(ResultSet.class);
 
-        // Simulate the behavior of the getConnection method
+        // Define behavior for DAOFactory
         when(mockDAOFactory.getConnection()).thenReturn(mockConnection);
 
-        // Initialize BlogDaoImpl
+        // Initialize BlogDaoImpl with mocked DAOFactory
         blogDaoImpl = new BlogDaoImpl(mockDAOFactory);
     }
 
     // Test for addBlog
     @Test
     public void testAddBlog_Success() throws Exception {
-        // Prepare the Blog object
+        // Arrange
         Blog blog = new Blog();
         blog.setTitle("JUnit Testing");
         blog.setDescription("Testing DAO layer with JUnit and Mockito.");
         blog.setPicture(new byte[]{1, 2, 3});
         blog.setPublicationDate(new Date());
         User user = new User();
-        user.setId(1L);
+        user.setId(1L); // Ensure user ID is long
         blog.setUser(user);
 
-        // Mock prepareStatement and executeUpdate
-        when(mockConnection.prepareStatement(anyString(), eq(Statement.RETURN_GENERATED_KEYS))).thenReturn(mockPreparedStatement);
+        // Mock PreparedStatement behavior
+        when(mockConnection.prepareStatement(anyString(), eq(Statement.RETURN_GENERATED_KEYS)))
+            .thenReturn(mockPreparedStatement);
         when(mockPreparedStatement.executeUpdate()).thenReturn(1);
         when(mockPreparedStatement.getGeneratedKeys()).thenReturn(mockResultSet);
         when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getInt(1)).thenReturn(100); // Generated ID
+        when(mockResultSet.getLong(1)).thenReturn(100L); // Use getLong instead of getInt
 
-        // Execute addBlog
+        // Act
         blogDaoImpl.addBlog(blog);
 
-        // Verify interactions
+        // Assert interactions
         verify(mockConnection).prepareStatement(
             "INSERT INTO blogs (title, description, picture, publicationDate, user_id) VALUES (?, ?, ?, ?, ?)",
             Statement.RETURN_GENERATED_KEYS
@@ -74,7 +75,7 @@ public class BlogDaoImplTest {
         verify(mockPreparedStatement).setString(1, "JUnit Testing");
         verify(mockPreparedStatement).setString(2, "Testing DAO layer with JUnit and Mockito.");
         verify(mockPreparedStatement).setBytes(3, new byte[]{1, 2, 3});
-        // Since publicationDate is set, verify setTimestamp
+        // Verify setTimestamp
         ArgumentCaptor<Timestamp> timestampCaptor = ArgumentCaptor.forClass(Timestamp.class);
         verify(mockPreparedStatement).setTimestamp(eq(4), timestampCaptor.capture());
         assertNotNull(timestampCaptor.getValue());
@@ -83,13 +84,13 @@ public class BlogDaoImplTest {
         verify(mockPreparedStatement).getGeneratedKeys();
 
         // Assert that blogId is set
-        assertEquals(100, blog.getBlogId());
+        assertEquals(100L, blog.getBlogId()); // Use 100L to match long
     }
 
     // Test for getBlogById - Found
     @Test
     public void testGetBlogById_Found() throws Exception {
-        int blogId = 100;
+        long blogId = 100L; // Use long instead of int
 
         // Mock prepareStatement and executeQuery
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
@@ -97,16 +98,17 @@ public class BlogDaoImplTest {
 
         // Mock ResultSet data
         when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getInt("blog_id")).thenReturn(blogId);
+        when(mockResultSet.getLong("blog_id")).thenReturn(blogId); // Use getLong
         when(mockResultSet.getString("title")).thenReturn("JUnit Testing");
         when(mockResultSet.getString("description")).thenReturn("Testing DAO layer with JUnit and Mockito.");
         when(mockResultSet.getBytes("picture")).thenReturn(new byte[]{1, 2, 3});
         when(mockResultSet.getTimestamp("publicationDate")).thenReturn(new Timestamp(System.currentTimeMillis()));
+        // Assuming user is set in the map method
 
-        // Execute getBlogById
+        // Act
         Blog blog = blogDaoImpl.getBlogById(blogId);
 
-        // Verify interactions
+        // Assert interactions
         verify(mockConnection).prepareStatement(
             "SELECT b.blog_id, b.title, b.description, b.picture, b.publicationDate, " +
             "u.id as user_id, u.name as user_name, u.password as user_password, u.picture as user_picture, u.email as user_email " +
@@ -115,7 +117,7 @@ public class BlogDaoImplTest {
             "WHERE b.blog_id = ?"
         );
 
-        verify(mockPreparedStatement).setInt(1, blogId);
+        verify(mockPreparedStatement).setLong(1, blogId); // Use setLong
         verify(mockPreparedStatement).executeQuery();
 
         // Assert Blog object
@@ -131,7 +133,7 @@ public class BlogDaoImplTest {
     // Test for getBlogById - Not Found
     @Test
     public void testGetBlogById_NotFound() throws Exception {
-        int blogId = 999;
+        long blogId = 999L; // Use long instead of int
 
         // Mock prepareStatement and executeQuery
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
@@ -140,10 +142,10 @@ public class BlogDaoImplTest {
         // Mock ResultSet to have no data
         when(mockResultSet.next()).thenReturn(false);
 
-        // Execute getBlogById
+        // Act
         Blog blog = blogDaoImpl.getBlogById(blogId);
 
-        // Verify interactions
+        // Assert interactions
         verify(mockConnection).prepareStatement(
             "SELECT b.blog_id, b.title, b.description, b.picture, b.publicationDate, " +
             "u.id as user_id, u.name as user_name, u.password as user_password, u.picture as user_picture, u.email as user_email " +
@@ -152,7 +154,7 @@ public class BlogDaoImplTest {
             "WHERE b.blog_id = ?"
         );
 
-        verify(mockPreparedStatement).setInt(1, blogId);
+        verify(mockPreparedStatement).setLong(1, blogId); // Use setLong
         verify(mockPreparedStatement).executeQuery();
 
         // Assert Blog object is null
@@ -162,36 +164,35 @@ public class BlogDaoImplTest {
     // Test for deleteBlog - Success
     @Test
     public void testDeleteBlog_Success() throws Exception {
-        int blogId = 100;
+        long blogId = 100L; // Use long instead of int
 
         // Mock prepareStatement and executeUpdate
         when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
         when(mockPreparedStatement.executeUpdate()).thenReturn(1); // One row deleted
 
-        // Execute deleteBlog
+        // Act
         blogDaoImpl.deleteBlog(blogId);
 
-        // Verify interactions
+        // Assert interactions
         verify(mockConnection).prepareStatement(
             "DELETE FROM blogs WHERE blog_id = ?"
         );
 
-        verify(mockPreparedStatement).setInt(1, blogId);
+        verify(mockPreparedStatement).setLong(1, blogId); // Use setLong
         verify(mockPreparedStatement).executeUpdate();
     }
 
     // Test for deleteBlog - SQLException
     @Test(expected = DAOException.class)
     public void testDeleteBlog_SQLException() throws Exception {
-        int blogId = 100;
+        long blogId = 100L; // Use long instead of int
 
         // Mock prepareStatement to throw SQLException
         when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("Delete failed"));
 
-        // Execute deleteBlog, expecting DAOException
-        blogDaoImpl.deleteBlog(blogId);
+        // Act & Assert
+        blogDaoImpl.deleteBlog(blogId); // Expecting DAOException
     }
 
     // Additional tests for other methods can be added here
 }
-
