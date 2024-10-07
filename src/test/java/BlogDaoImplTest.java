@@ -1,133 +1,246 @@
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
+package com.JAVA.DAO;
+
+import com.JAVA.Beans.Blog;
+import com.JAVA.Beans.Comment;
+import com.JAVA.Beans.User;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+public class BlogDaoImpl implements BlogDAO {
 
-import com.JAVA.Beans.Blog; // Assuming you have a Blog class in this package
-import com.JAVA.DAO.DAOFactory;
-import com.JAVA.DAO.BlogDAOImpl;
+    private DAOFactory daoFactory;
+    private UserDaoImpl userDaoImpl; // Changed to instance variable
 
-public class BlogDAOImplTest {
-
-    private DAOFactory mockDAOFactory;
-    private Connection mockConnection;
-    private PreparedStatement mockPreparedStatement;
-    private ResultSet mockResultSet;
-    private BlogDAOImpl blogDAO;
-
-    @Before
-    public void setUp() throws SQLException {
-        // Mock the DAOFactory and database-related objects
-        mockDAOFactory = mock(DAOFactory.class);
-        mockConnection = mock(Connection.class);
-        mockPreparedStatement = mock(PreparedStatement.class);
-        mockResultSet = mock(ResultSet.class);
-
-        // Simulate the behavior of the getConnection method
-        when(mockDAOFactory.getConnection()).thenReturn(mockConnection);
-
-        // Mock the prepared statement to be returned when prepareStatement is called
-        when(mockConnection.prepareStatement(anyString(), anyInt())).thenReturn(mockPreparedStatement);
-        
-        // Initialize the BlogDAOImpl with the mocked DAOFactory
-        blogDAO = new BlogDAOImpl(mockDAOFactory);
+    // Constructor
+    public BlogDaoImpl(DAOFactory daoFactory) {
+        this.daoFactory = daoFactory;
+        this.userDaoImpl = new UserDaoImpl(daoFactory); // Initialize here
     }
 
-    @Test
-    public void testInsertBlog() throws SQLException {
-        // Define the blog object
+    private static Blog map(ResultSet resultSet) throws SQLException {
         Blog blog = new Blog();
-        blog.setTitle("Test Blog Title");
-        blog.setContent("This is a test blog content.");
-        blog.setAuthor("Test Author");
-
-        // Mock executeUpdate behavior
-        when(mockPreparedStatement.executeUpdate()).thenReturn(1); // Simulate successful insert
-
-        // Execute the DAO method
-        blogDAO.insertBlog(blog);
-
-        // Verify that the insert operation was called
-        verify(mockPreparedStatement, times(1)).executeUpdate();
+        blog.setBlogId(resultSet.getInt("blog_id"));
+        blog.setTitle(resultSet.getString("title"));
+        blog.setDescription(resultSet.getString("description"));
+        blog.setPicture(resultSet.getBytes("picture"));
+        blog.setPublicationDate(resultSet.getTimestamp("publicationDate"));
+        // Populate user information in the mapping
+        User user = new User();
+        user.setId(resultSet.getInt("user_id"));
+        user.setName(resultSet.getString("user_name"));
+        user.setPassword(resultSet.getString("user_password"));
+        user.setPicture(resultSet.getBytes("user_picture"));
+        user.setEmail(resultSet.getString("user_email"));
+        blog.setUser(user);
+        return blog;
     }
 
-    @Test
-    public void testGetBlogById() throws SQLException {
-        // Mock the ResultSet behavior for getting a blog
-        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
-        when(mockResultSet.next()).thenReturn(true);
-        when(mockResultSet.getInt("id")).thenReturn(1);
-        when(mockResultSet.getString("title")).thenReturn("Test Blog Title");
-        when(mockResultSet.getString("content")).thenReturn("This is a test blog content.");
-        when(mockResultSet.getString("author")).thenReturn("Test Author");
+    @Override
+    public void addBlog(Blog blog) throws DAOException {
+        validateUserAndForeignKey(blog);
 
-        // Execute the DAO method
-        Blog blog = blogDAO.getBlogById(1);
+        final String SQL_INSERT = "INSERT INTO blogs (title, description, picture, publicationDate, user_id) VALUES (?, ?, ?, ?, ?)";
+        try (Connection connection = daoFactory.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(SQL_INSERT, Statement.RETURN_GENERATED_KEYS)) {
+             
+            preparedStatement.setString(1, blog.getTitle());
+            preparedStatement.setString(2, blog.getDescription());
+            preparedStatement.setBytes(3, blog.getPicture());
 
-        // Verify the retrieved blog details
-        assertNotNull(blog);
-        assertEquals("Test Blog Title", blog.getTitle());
-        assertEquals("This is a test blog content.", blog.getContent());
-        assertEquals("Test Author", blog.getAuthor());
+            // Set publicationDate, defaulting to now if null
+            preparedStatement.setTimestamp(4, blog.getPublicationDate() != null 
+                ? new Timestamp(blog.getPublicationDate().getTime()) 
+                : new Timestamp(new Date().getTime()));
+
+            preparedStatement.setLong(5, blog.getUser().getId());
+
+            int affectedRows = preparedStatement.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Creating blog failed, no rows affected.");
+            }
+
+            try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    blog.setBlogId(generatedKeys.getInt(1));
+                } else {
+                    throw new SQLException("Creating blog failed, no ID obtained.");
+                }
+            }
+        } catch (SQLException e) {
+            throw new DAOException(e);
+        }
     }
 
-    @Test
-    public void testUpdateBlog() throws SQLException {
-        // Define the blog object to update
-        Blog blog = new Blog();
-        blog.setId(1);
-        blog.setTitle("Updated Blog Title");
-        blog.setContent("Updated content for the blog.");
-        blog.setAuthor("Updated Author");
-
-        // Mock executeUpdate behavior
-        when(mockPreparedStatement.executeUpdate()).thenReturn(1); // Simulate successful update
-
-        // Execute the DAO method
-        blogDAO.updateBlog(blog);
-
-        // Verify that the update operation was called
-        verify(mockPreparedStatement, times(1)).executeUpdate();
+    private void validateUserAndForeignKey(Blog blog) throws DAOException {
+        if (!userExists(blog.getUser().getId())) {
+            throw new DAOException("User does not exist. Cannot add the blog.");
+        }
+        // Foreign key constraint checks should be based on your application logic
+        if (!foreignkeyConstraintIsSatisfied(blog.getUser().getId())) {
+            throw new DAOException("Foreign key constraint violated. Cannot add the blog.");
+        }
     }
 
-    @Test
-    public void testDeleteBlog() throws SQLException {
-        // Mock executeUpdate behavior
-        when(mockPreparedStatement.executeUpdate()).thenReturn(1); // Simulate successful delete
-
-        // Execute the DAO method
-        blogDAO.deleteBlog(1);
-
-        // Verify that the delete operation was called
-        verify(mockPreparedStatement, times(1)).executeUpdate();
+    private boolean userExists(long userId) {
+        final String SQL_USER_EXISTS = "SELECT COUNT(*) FROM users WHERE id = ?";
+        try (Connection connection = daoFactory.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(SQL_USER_EXISTS)) {
+             
+            preparedStatement.setLong(1, userId);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
-    @Test
-    public void testGetAllBlogs() throws SQLException {
-        // Mock the ResultSet behavior for getting all blogs
-        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
-        when(mockResultSet.next()).thenReturn(true).thenReturn(true).thenReturn(false); // Simulate two blogs
-        when(mockResultSet.getInt("id")).thenReturn(1).thenReturn(2);
-        when(mockResultSet.getString("title")).thenReturn("Blog 1 Title").thenReturn("Blog 2 Title");
-        when(mockResultSet.getString("content")).thenReturn("Blog 1 Content").thenReturn("Blog 2 Content");
-        when(mockResultSet.getString("author")).thenReturn("Author 1").thenReturn("Author 2");
+    private boolean foreignkeyConstraintIsSatisfied(long userId) {
+        // Implement actual foreign key constraint checks as needed
+        return true; // Placeholder, replace with actual logic
+    }
 
-        // Execute the DAO method
-        List<Blog> blogs = blogDAO.getAllBlogs();
+    @Override
+    public Blog getBlogById(int blogId) throws DAOException {
+        final String SQL_SELECT_BY_ID = "SELECT b.blog_id, b.title, b.description, b.picture, b.publicationDate, " +
+                "u.id as user_id, u.name as user_name, u.password as user_password, u.picture as user_picture, u.email as user_email " +
+                "FROM blogs b " +
+                "INNER JOIN users u ON b.user_id = u.id " +
+                "WHERE b.blog_id = ?";
 
-        // Verify the retrieved blogs
-        assertNotNull(blogs);
-        assertEquals(2, blogs.size());
-        assertEquals("Blog 1 Title", blogs.get(0).getTitle());
-        assertEquals("Blog 2 Title", blogs.get(1).getTitle());
+        try (Connection connection = daoFactory.getConnection();
+             PreparedStatement preparedStatement = initRequestPrepare(connection, SQL_SELECT_BY_ID, blogId);
+             ResultSet resultSet = preparedStatement.executeQuery()) {
+             
+            if (resultSet.next()) {
+                return map(resultSet);
+            }
+        } catch (SQLException e) {
+            throw new DAOException(e);
+        }
+
+        return null;
+    }
+
+    @Override
+    public List<Blog> getBlogsByUserId(int userId) throws DAOException {
+        final String SQL_SELECT_BY_USER_ID = "SELECT b.blog_id, b.title, b.description, b.picture, b.publicationDate, " +
+                "u.id as user_id, u.name as user_name, u.password as user_password, u.picture as user_picture, u.email as user_email " +
+                "FROM blogs b " +
+                "INNER JOIN users u ON b.user_id = u.id " +
+                "WHERE b.user_id = ?";
+
+        List<Blog> blogList = new ArrayList<>();
+        try (Connection connection = daoFactory.getConnection();
+             PreparedStatement preparedStatement = initRequestPrepare(connection, SQL_SELECT_BY_USER_ID, userId);
+             ResultSet resultSet = preparedStatement.executeQuery()) {
+             
+            while (resultSet.next()) {
+                blogList.add(map(resultSet));
+            }
+        } catch (SQLException e) {
+            throw new DAOException(e);
+        }
+
+        return blogList;
+    }
+
+    @Override
+    public List<Blog> searchBlogsByTitle(String title) throws DAOException {
+        final String SQL_SEARCH_BY_TITLE = "SELECT b.blog_id, b.title, b.description, b.picture, b.publicationDate, " +
+                "u.id as user_id, u.name as user_name, u.password as user_password, u.picture as user_picture, u.email as user_email " +
+                "FROM blogs b " +
+                "INNER JOIN users u ON b.user_id = u.id " +
+                "WHERE b.title LIKE ?";
+
+        List<Blog> blogList = new ArrayList<>();
+        try (Connection connection = daoFactory.getConnection();
+             PreparedStatement preparedStatement = initRequestPrepare(connection, SQL_SEARCH_BY_TITLE, "%" + title + "%");
+             ResultSet resultSet = preparedStatement.executeQuery()) {
+             
+            while (resultSet.next()) {
+                blogList.add(map(resultSet));
+            }
+        } catch (SQLException e) {
+            throw new DAOException(e);
+        }
+
+        return blogList;
+    }
+
+    @Override
+    public void updateBlog(Blog blog) throws DAOException {
+        final String SQL_UPDATE = "UPDATE blogs SET user_id = ?, title = ?, description = ?, picture = ? WHERE blog_id = ?";
+
+        try (Connection connection = daoFactory.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(SQL_UPDATE)) {
+             
+            preparedStatement.setInt(1, blog.getUser().getId());
+            preparedStatement.setString(2, blog.getTitle());
+            preparedStatement.setString(3, blog.getDescription());
+            preparedStatement.setBytes(4, blog.getPicture());
+            preparedStatement.setInt(5, blog.getBlogId());
+
+            int rowsUpdated = preparedStatement.executeUpdate();
+            System.out.println("Rows updated: " + rowsUpdated);
+        } catch (SQLException e) {
+            throw new DAOException(e);
+        }
+    }
+
+    @Override
+    public void deleteBlog(int blogId) throws DAOException {
+        final String SQL_DELETE = "DELETE FROM blogs WHERE blog_id = ?";
+
+        try (Connection connection = daoFactory.getConnection();
+             PreparedStatement preparedStatement = initRequestPrepare(connection, SQL_DELETE, blogId)) {
+             
+            preparedStatement.executeUpdate();
+            System.out.println("Blog deleted successfully");
+        } catch (SQLException e) {
+            throw new DAOException(e);
+        }
+    }
+
+    private static PreparedStatement initRequestPrepare(Connection connection, String sql, Object... objects) 
+            throws SQLException {
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        for (int i = 0; i < objects.length; i++) {
+            preparedStatement.setObject(i + 1, objects[i]);
+        }
+        return preparedStatement;
+    }
+
+    @Override
+    public List<Blog> getAllBlogs() throws DAOException {
+        final String SQL_SELECT_ALL = "SELECT b.blog_id, b.title, b.description, b.picture, b.publicationDate, " +
+                "u.id as user_id, u.name as user_name, u.password as user_password, u.picture as user_picture, u.email as user_email " +
+                "FROM blogs b " +
+                "INNER JOIN users u ON b.user_id = u.id";
+
+        List<Blog> blogList = new ArrayList<>();
+        try (Connection connection = daoFactory.getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(SQL_SELECT_ALL);
+             ResultSet resultSet = preparedStatement.executeQuery()) {
+             
+            while (resultSet.next()) {
+                blogList.add(map(resultSet));
+            }
+        } catch (SQLException e) {
+            throw new DAOException(e);
+        }
+
+        return blogList;
     }
 }
