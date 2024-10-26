@@ -11,7 +11,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 // Specify the branch 'master'
-                git branch: 'master', url: 'https://github.com/SihamOubalaout/PainCare3.git'
+                git branch: 'prod', url: 'https://github.com/ELmeehdi/PainCare3.git'
             }
         }
 
