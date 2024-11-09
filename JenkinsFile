@@ -36,7 +36,31 @@ pipeline {
                 }
             }
         }
-
+ stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'SonarScanner';
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=Paincare \
+                            -Dsonar.host.url=https://59b4-105-73-96-62.ngrok-free.app  \
+                            -Dsonar.login=Ensi@s200222 \
+                            -Dsonar.sources=src \
+                            -Dsonar.exclusions="**/node_modules/**"
+                        """
+                    }
+                }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+    }
         stage('Run Tests') {
             steps {
                 bat 'mvn test'
