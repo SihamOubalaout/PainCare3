@@ -42,15 +42,15 @@ pipeline {
                 script {
                     def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('SonarQube') {
-                        sh """
-                            ${scannerHome}/bin/sonar-scanner \
-                            -Dsonar.projectKey=Paincare \
-                            -Dsonar.host.url=https://59b4-105-73-96-62.ngrok-free.app  \
-                            -Dsonar.login=Ensi@s200222 \
-                            -Dsonar.sources=src \
-                            -Dsonar.exclusions="**/node_modules/**"
-                        """
-                    }
+                bat """
+                    ${scannerHome}\\bin\\sonar-scanner.bat ^
+                    -Dsonar.projectKey=Paincare ^
+                    -Dsonar.host.url=https://59b4-105-73-96-62.ngrok-free.app  ^
+                    -Dsonar.login=Ensi@s200222 ^
+                    -Dsonar.sources=src ^
+                    -Dsonar.exclusions="**/node_modules/**"
+                """
+            }
                 }
             }
         }
