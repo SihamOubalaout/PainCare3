@@ -5,13 +5,13 @@ pipeline {
         PATH = "C:\\WINDOWS\\SYSTEM32;C:\\Program Files\\Docker\\Docker\\resources\\bin"
     }
     tools {
-        maven 'Maven' // Ensure Maven is installed in Jenkins
+        maven 'maven' // Ensure Maven is installed in Jenkins
     }
     stages {
         stage('Checkout') {
             steps {
                 // Specify the branch 'master'
-                git branch: 'master', url: 'https://github.com/SihamOubalaout/PainCare3.git'
+                git branch: 'prod', url: 'https://github.com/ELmeehdi/PainCare3.git'
             }
         }
 
